@@ -1,8 +1,7 @@
 # IGI Cybersecurity external pen test automation tool
 # Author: John Lyons (jlyons@igius.com)
 
-# todo: impliment jok3r tool
-# todo: better parsing of results from nmapautomator
+# todo: finish implimenting jok3r tool
 # todo: determine domains for associated ips
 # todo: package results into file (csv with nessus format for input into plextrac?)
 
@@ -14,7 +13,7 @@ import os
 
 # Main function used to call child functions specific to external pen test tools and provide updates to the user on the scripts progress
 def main():
-    parser = argparse.ArgumentParser(description='External Pen Testing Automation tool made by IGI Cybersecurity')
+    parser = argparse.ArgumentParser(description='External Pen Testing Automation tool made by IGI Cybersecurity. \n NOTE: This script must currently be run in su mode, as some tools require root access. \n NOTE 2: currently any domains intended to be scanned by magicRecon must be input manualy')
 
     parser.add_argument('-o', '--output', required=True, help='folder for script outputs')
     parser.add_argument('-v', '--verbose', action='store_true', help='push cli outputs for individual tools to the cli')
@@ -90,7 +89,22 @@ def magicrecon(ips,verbose,output,domains,light,configs):
         os.system(command)
     print('Magic Recon tool done!')
 
+
+# todo: figure out how to get docker containerized jok3r to work from a script
 def jok3r(ips,verbose,output,domains,light,configs):
     pass
+
+#WIP function that is intended to convert any open http(s) ports on ips into domains usable for magicrecon
+def obtainDomains(domains,ips,output):
+    httpips = {}
+    for ip in ips:
+        outputloc = output + '/nmapAutomator/' + ip + '/nmap/Full_' + ip + '.nmap'
+        nmapscan = open(outputloc, "r")
+        for line in nmapscan:
+            if 'http' in line or 'https' in line:
+                httpips[ip] = line
+        nmapscan.close()
+
+
 
 main()
