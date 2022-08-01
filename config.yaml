@@ -4,12 +4,12 @@
 # this file is can be used to change the command arguments for tools used in the automated script
 
 #nmapAutomator NOTE: if the filepath to the nmapAutomator script has changed please edit it here
-nmapauto_full: ./~nmapAutomator/nmapAutomator.sh -t All
-nmapauto_light: ./~nmapAutomator/nmapAutomator.sh -t Full
+nmapauto_full: ./../nmapAutomator/nmapAutomator.sh -t All
+nmapauto_light: ./../nmapAutomator/nmapAutomator.sh -t Full
 
 #Magic Recon
-magicrecon_full: ./~magicRecon/magicrecon.sh -a -d
-magicrecon_light: ./~magicRecon/magicrecon.sh -r -d
+magicrecon_full: ./../magicRecon/magicrecon.sh -a -d
+magicrecon_light: ./../magicRecon/magicrecon.sh -r -d
 
 #Jok3r
 jok3r: shell python3 jok3r.py attack --fast -t
