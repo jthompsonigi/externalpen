@@ -2,7 +2,8 @@
 # Author: John Lyons (jlyons@igius.com)
 
 # todo: finish implimenting jok3r tool
-# todo: package results into file (csv with h3 format for input into plextrac?)
+# todo: package results into file (csv with nessus format for input into plextrac?)
+# todo: check if jok3r container is installed
 
 
 # imports
@@ -50,6 +51,8 @@ def main():
     os.system('mkdir ' + output)
 
     nmapauto(ips,verbose,output,domains,light,configs)
+    magicrecon(ips,verbose,output,domains,light,configs)
+    jok3r(ips,args.title,output)
 
 #function that runs nmapAutomator tool, outputs saved in output directory + /nmapAutomator/
 def nmapauto(ips,verbose,output,domains,light,configs):
@@ -87,22 +90,23 @@ def magicrecon(ips,verbose,output,domains,light,configs):
     print('Magic Recon tool done!')
 
 
-# todo: figure out how to get docker containerized jok3r to work from a script
-def jok3r(ips,title):
+#todo testing on jok3r, stability?
+#function that runs jok3r tool, outputs saved at current file location
+def jok3r(ips,title,output,configs):
     print("Starting Jok3r, this may take a while...")
     os.system("docker start -i jok3r-container")
     os.system('python3 jok3r.py db')
     os.system('mission -a ' + title)
-    #todo: rework to use nmap xml for scope
     for ip in ips:
-        os.system('shell python3 jok3r.py attack -t' + ip + ' -add2db' + title + '--fast')
-    print('Jok3r finished for soped ips')
-    os.system('exit')
+        command = configs['jok3r']
+        os.system(command + ' ' + ip + ' -add2db' + title)
+    print('Jok3r finished for scoped ips')
     list_of_files = glob.glob('/root/jok3r/reports/*')
     latest_file = max(list_of_files, key=os.path.getctime())
+    os.system('exit')
     os.system('docker cp jok3r-container:/root/jok3r/reports/'+latest_file + " .")
+    os.system('mv ' + latest_file + " " + output)
     #os.system('firefox &lt;/root/jok3r/reports/')
-
     #os.system('firefox &lt;/root/jok3r/reports/'+latest_file+'>.html')
 
 

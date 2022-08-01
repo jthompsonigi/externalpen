@@ -12,3 +12,4 @@ magicrecon_full: ./~magicRecon/magicrecon.sh -a -d
 magicrecon_light: ./~magicRecon/magicrecon.sh -r -d
 
 #Jok3r
+jok3r: shell python3 jok3r.py attack --fast -t
