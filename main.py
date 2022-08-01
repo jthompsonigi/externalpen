@@ -50,9 +50,9 @@ def main():
 
     os.system('mkdir ' + output)
 
-    nmapauto(ips,verbose,output,domains,light,configs)
-    magicrecon(ips,verbose,output,domains,light,configs)
-    jok3r(ips,args.title,output)
+    #nmapauto(ips,verbose,output,domains,light,configs)
+    #magicrecon(ips,verbose,output,domains,light,configs)
+    jok3r(ips,args.title,output,configs)
 
 #function that runs nmapAutomator tool, outputs saved in output directory + /nmapAutomator/
 def nmapauto(ips,verbose,output,domains,light,configs):
@@ -94,20 +94,33 @@ def magicrecon(ips,verbose,output,domains,light,configs):
 #function that runs jok3r tool, outputs saved at current file location
 def jok3r(ips,title,output,configs):
     print("Starting Jok3r, this may take a while...")
-    os.system("docker start -i jok3r-container")
-    os.system('python3 jok3r.py db')
-    os.system('mission -a ' + title)
+    os.system("docker start jok3r-container")
+    old_reports = os.system('docker exec jok3r-container ls /root/jok3r/reports/')
+    if old_reports != "" or old_reports != " ":
+        old_reports_list = old_reports.split()
+        for item in old_reports_list:
+            os.system('docker exec jok3r-container rm -r jok3r-container:/root/')
+        pass
+    os.system('docker exec jok3r-container python3 jok3r.py db')
+    os.system('docker exec jok3r-container mission -a ' + title)
     for ip in ips:
         command = configs['jok3r']
-        os.system(command + ' ' + ip + ' -add2db' + title)
+        os.system('docker exec jok3r-container ' + command + ' ' + ip + ' -add2db' + title)
     print('Jok3r finished for scoped ips')
-    list_of_files = glob.glob('/root/jok3r/reports/*')
-    latest_file = max(list_of_files, key=os.path.getctime())
-    os.system('exit')
-    os.system('docker cp jok3r-container:/root/jok3r/reports/'+latest_file + " .")
-    os.system('mv ' + latest_file + " " + output)
+    print('Retrieving report from jok3r container')
+    results = os.system('docker exec jok3r-container ls /root/jok3r/reports/')
+    os.system('docker cp jok3r-container:/root/jok3r/reports/'+results+ ' .')
+    os.system('docker exec jok3r-container rm -r jok3r-container:/root/jok3r/reports/'+results)
+    #list_of_files = glob.glob('/root/jok3r/reports/*')
+    #latest_file = max(list_of_files, key=os.path.getctime())
+    #os.system('exit')
+    #os.system('docker cp jok3r-container:/root/jok3r/reports/'+latest_file + " .")
+    #os.system('mv ' + latest_file + " " + output)
     #os.system('firefox &lt;/root/jok3r/reports/')
     #os.system('firefox &lt;/root/jok3r/reports/'+latest_file+'>.html')
+
+def jok3r2(ips,title,output,configs):
+    print("starting jok3r, this may take a while...")
 
 
 #Function that intakes H3 csv file of hosts and associates each ip with coresponding hosts.
