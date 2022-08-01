@@ -2,23 +2,25 @@
 # Author: John Lyons (jlyons@igius.com)
 
 # todo: finish implimenting jok3r tool
-# todo: determine domains for associated ips
-# todo: package results into file (csv with nessus format for input into plextrac?)
+# todo: package results into file (csv with h3 format for input into plextrac?)
 
 
 # imports
 import argparse
 import yaml
 import os
+import pandas
+import glob
 
 # Main function used to call child functions specific to external pen test tools and provide updates to the user on the scripts progress
 def main():
     parser = argparse.ArgumentParser(description='External Pen Testing Automation tool made by IGI Cybersecurity. \n NOTE: This script must currently be run in su mode, as some tools require root access. \n NOTE 2: currently any domains intended to be scanned by magicRecon must be input manualy')
 
-    parser.add_argument('-o', '--output', required=True, help='folder for script outputs')
-    parser.add_argument('-v', '--verbose', action='store_true', help='push cli outputs for individual tools to the cli')
-    parser.add_argument('-d', '--domains', required=False, help='optional list of domains to test')
-    parser.add_argument('-l', '--lightscan', action='store_true', help='run less time consuming version of tools when possible, this option may reduce how many results are found')
+    parser.add_argument('-o', '--output', required=True, help='Folder for script outputs')
+    parser.add_argument('-v', '--verbose', action='store_true', help='Push cli outputs for individual tools to the cli')
+    parser.add_argument('-d', '--domains', required=False, help='H3 hosts file that contains discovered domains for all ips')
+    parser.add_argument('-l', '--lightscan', action='store_true', help='Run less time consuming version of tools when possible, this option may reduce how many results are found')
+    parser.add_argument('-t', '--title', required=True, help='Title for jok3r mission (recommended to just use client name)')
     parser.add_argument('ips')
     args = parser.parse_args()
 
@@ -35,11 +37,7 @@ def main():
     if args.output:
         output = args.output
     if args.domains:
-        domainfile = open(args.domain,"r")
-        for line in domainfile:
-            stripped_line = line.strip()
-            domains.append(stripped_line)
-        domainfile.close()
+        ipdomainlist, domains = obtainDomains(args.domains)
     ipfile = open(args.ips,"r")
     for line in ipfile:
         stripped_line = line.strip()
@@ -71,7 +69,6 @@ def nmapauto(ips,verbose,output,domains,light,configs):
     print("nmap automator tool done!")
 
 #function that runs magicRecon tool, outputs saved in output directory + /magicrecon/
-#NOTE: currently only pulls from domains list
 def magicrecon(ips,verbose,output,domains,light,configs):
     print("Starting Magic Recon tool.")
     if light == True:
@@ -91,20 +88,37 @@ def magicrecon(ips,verbose,output,domains,light,configs):
 
 
 # todo: figure out how to get docker containerized jok3r to work from a script
-def jok3r(ips,verbose,output,domains,light,configs):
-    pass
-
-#WIP function that is intended to convert any open http(s) ports on ips into domains usable for magicrecon
-def obtainDomains(domains,ips,output):
-    httpips = {}
+def jok3r(ips,title):
+    print("Starting Jok3r, this may take a while...")
+    os.system("docker start -i jok3r-container")
+    os.system('python3 jok3r.py db')
+    os.system('mission -a ' + title)
+    #todo: rework to use nmap xml for scope
     for ip in ips:
-        outputloc = output + '/nmapAutomator/' + ip + '/nmap/Full_' + ip + '.nmap'
-        nmapscan = open(outputloc, "r")
-        for line in nmapscan:
-            if 'http' in line or 'https' in line:
-                httpips[ip] = line
-        nmapscan.close()
+        os.system('shell python3 jok3r.py attack -t' + ip + ' -add2db' + title + '--fast')
+    print('Jok3r finished for soped ips')
+    os.system('exit')
+    list_of_files = glob.glob('/root/jok3r/reports/*')
+    latest_file = max(list_of_files, key=os.path.getctime())
+    os.system('docker cp jok3r-container:/root/jok3r/reports/'+latest_file + " .")
+    #os.system('firefox &lt;/root/jok3r/reports/')
+
+    #os.system('firefox &lt;/root/jok3r/reports/'+latest_file+'>.html')
 
 
+#Function that intakes H3 csv file of hosts and associates each ip with coresponding hosts.
+def obtainDomains(domains):
+    colnames = ['FirstSeen','Subnet','SubnetSource','IP','Hostname','DNSHostname','LDAPHostname','InScope','OS','Hardware','Device','NumWeaknesses','NumConfirmedWeaknesses','NumDataResources','NumCredentials','NumConfirmedCredentials','NumServices','NumWebShares','RiskScore','RiskScoreDescription','OpID']
+    data = pandas.read_csv(domains,names=colnames)
+    ips = data.IP.tolist()
+    hosts = data.Hostname.tolist()
+    ips = ips[1:]
+    hosts = hosts[1:]
+
+    ipwithhost = {}
+    for i in range(len(ips)):
+        ipwithhost[ips[i]] = hosts[i]
+
+    return ipwithhost, hosts
 
 main()
